@@ -1,13 +1,30 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Assume process.env.API_KEY is available in the environment
-const API_KEY = process.env.API_KEY;
+// A singleton instance of the GoogleGenAI class.
+// It is initialized lazily to prevent a startup crash if the API key is not available.
+let ai: GoogleGenAI | undefined;
 
-if (!API_KEY) {
-  throw new Error("API_KEY is not set in environment variables.");
+/**
+ * Initializes and returns a singleton instance of the GoogleGenAI client.
+ * Throws an error if the API key is not configured in the environment.
+ */
+function getAiClient(): GoogleGenAI {
+  if (ai) {
+    return ai;
+  }
+  
+  // In a browser environment, `process` is not defined. The execution environment
+  // is expected to inject this. If it's missing, we need to handle it gracefully
+  // instead of crashing the entire application on startup.
+  const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
+
+  if (!API_KEY) {
+    throw new Error("API_KEY is not configured. Please ensure it is set up correctly in the execution environment.");
+  }
+
+  ai = new GoogleGenAI({ apiKey: API_KEY });
+  return ai;
 }
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 export const editImageWithGemini = async (
   base64ImageData: string,
@@ -16,11 +33,13 @@ export const editImageWithGemini = async (
   systemInstruction: string
 ): Promise<string> => {
   try {
+    const genAI = getAiClient(); // Initialize lazily on first call
+
     // For image editing models, all text guidance should be in the main prompt.
     // The `systemInstruction` config is not supported for this model.
     const fullPrompt = `${systemInstruction}\n\n${prompt}`;
 
-    const response = await ai.models.generateContent({
+    const response = await genAI.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
