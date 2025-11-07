@@ -13,16 +13,12 @@ function getAiClient(): GoogleGenAI {
     return ai;
   }
   
-  // In a browser environment, `process` is not defined. The execution environment
-  // is expected to inject this. If it's missing, we need to handle it gracefully
-  // instead of crashing the entire application on startup.
-  const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
-
-  if (!API_KEY) {
-    throw new Error("API_KEY is not configured. Please ensure it is set up correctly in the execution environment.");
+  // Fix: Use process.env.API_KEY as required by the coding guidelines to fix the TypeScript error.
+  if (!process.env.API_KEY) {
+    throw new Error("API_KEY is not configured. Please ensure it is set as an environment variable.");
   }
 
-  ai = new GoogleGenAI({ apiKey: API_KEY });
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   return ai;
 }
 
